@@ -41,45 +41,45 @@ import 'package:flutter/services.dart';
 ///itemsVisibleInDropdown - int - Number of suggestions to be shown by default in the Dropdown after which the list scrolls. Defaults to 3
 class DropDownField extends FormField<String> {
   final dynamic value;
-  final Widget icon;
+  final Widget? icon;
   final String hintText;
   final TextStyle hintStyle;
-  final String labelText;
-  final TextStyle labelStyle;
-  final TextStyle textStyle;
+  final String? labelText;
+  final TextStyle? labelStyle;
+  final TextStyle? textStyle;
   final bool required;
   final bool enabled;
   final List<dynamic> items;
-  final List<TextInputFormatter> inputFormatters;
-  final FormFieldSetter<dynamic> setter;
+  final List<TextInputFormatter>? inputFormatters;
+  final FormFieldSetter<dynamic>? setter;
   final ValueChanged<dynamic> onValueChanged;
-  final bool strict;
-  final int itemsVisibleInDropdown;
+  final bool? strict;
+  final int? itemsVisibleInDropdown;
 
   /// Controls the text being edited.
   ///
   /// If null, this widget will create its own [TextEditingController] and
   /// initialize its [TextEditingController.text] with [initialValue].
-  final TextEditingController controller;
+  final TextEditingController? controller;
 
   DropDownField(
-      {Key key,
+      {Key? key,
       this.controller,
       this.value,
       this.required: false,
       this.icon,
-      this.hintText,
+      required this.hintText,
       this.hintStyle: const TextStyle(
           fontWeight: FontWeight.normal, color: Colors.grey, fontSize: 18.0),
       this.labelText,
       this.labelStyle: const TextStyle(
           fontWeight: FontWeight.normal, color: Colors.grey, fontSize: 18.0),
       this.inputFormatters,
-      this.items,
+      required this.items,
       this.textStyle: const TextStyle(
           fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14.0),
       this.setter,
-      this.onValueChanged,
+      required this.onValueChanged,
       this.itemsVisibleInDropdown: 3,
       this.enabled: true,
       this.strict: true})
@@ -89,7 +89,7 @@ class DropDownField extends FormField<String> {
           initialValue: controller != null ? controller.text : (value ?? ''),
           onSaved: setter,
           builder: (FormFieldState<String> field) {
-            final DropDownFieldState state = field;
+            final DropDownFieldState state = field as DropDownFieldState;
             final ScrollController _scrollController = ScrollController();
             final InputDecoration effectiveDecoration = InputDecoration(
                 border: InputBorder.none,
@@ -126,7 +126,7 @@ class DropDownField extends FormField<String> {
                         obscureText: false,
                         maxLengthEnforcement: MaxLengthEnforcement.none,
                         maxLines: 1,
-                        validator: (String newValue) {
+                        validator: (String? newValue) {
                           if (required) {
                             if (newValue == null || newValue.isEmpty)
                               return 'This field cannot be empty!';
@@ -135,8 +135,8 @@ class DropDownField extends FormField<String> {
                           //Items null check added since there could be an initial brief period of time
                           //when the dropdown items will not have been loaded
                           if (items != null) {
-                            if (strict &&
-                                newValue.isNotEmpty &&
+                            if (strict! &&
+                                newValue!.isNotEmpty &&
                                 !items.contains(newValue))
                               return 'Invalid value in this field!';
                           }
@@ -161,7 +161,7 @@ class DropDownField extends FormField<String> {
                     ? Container()
                     : Container(
                         alignment: Alignment.topCenter,
-                        height: itemsVisibleInDropdown *
+                        height: itemsVisibleInDropdown! *
                             48.0, //limit to default 3 items in dropdownlist view and then remaining scrolls
                         width: MediaQuery.of(field.context).size.width,
                         child: ListView(
@@ -172,9 +172,9 @@ class DropDownField extends FormField<String> {
                           children: items.isNotEmpty
                               ? ListTile.divideTiles(
                                       context: field.context,
-                                      tiles: state._getChildren(state._items))
+                                      tiles: state._getChildren(state._items as List<String>))
                                   .toList()
-                              : List(),
+                              : [],
                         ),
                       ),
               ],
@@ -187,26 +187,42 @@ class DropDownField extends FormField<String> {
 }
 
 class DropDownFieldState extends FormFieldState<String> {
-  TextEditingController _controller;
+  TextEditingController? _controller;
   bool _showdropdown = false;
   bool _isSearching = true;
   String _searchText = "";
 
   @override
-  DropDownField get widget => super.widget;
-  TextEditingController get _effectiveController =>
+  DropDownField get widget => super.widget as DropDownField;
+  TextEditingController? get _effectiveController =>
       widget.controller ?? _controller;
 
-  List<String> get _items => widget.items;
+  List get _items => widget.items;
 
   void toggleDropDownVisibility() {}
 
   void clearValue() {
     setState(() {
-      _effectiveController.text = '';
+      _effectiveController?.text = '';
     });
   }
 
+  // @override
+  // void didUpdateWidget(DropDownField oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
+  //   if (widget.controller != oldWidget.controller) {
+  //     oldWidget.controller.removeListener(_handleControllerChanged);
+  //     widget.controller.addListener(_handleControllerChanged);
+
+  //     if (oldWidget.controller != null && widget.controller == null)
+  //       _controller =
+  //           TextEditingController.fromValue(oldWidget.controller.value);
+  //     if (widget.controller != null) {
+  //       setValue(widget.controller.text);
+  //       if (oldWidget.controller == null) _controller = null;
+  //     }
+  //   }
+  // }
   @override
   void didUpdateWidget(DropDownField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -214,12 +230,17 @@ class DropDownFieldState extends FormFieldState<String> {
       oldWidget.controller?.removeListener(_handleControllerChanged);
       widget.controller?.addListener(_handleControllerChanged);
 
-      if (oldWidget.controller != null && widget.controller == null)
+      // If the old controller is not null and the new controller is null,
+      // we need to copy the value from the old controller to the new controller.
+      if (oldWidget.controller != null && widget.controller == null) {
         _controller =
-            TextEditingController.fromValue(oldWidget.controller.value);
+            TextEditingController.fromValue(oldWidget.controller?.value);
+      }
+
+      // If the new controller is not null, we need to set the value of the new
+      // controller to the value of the old controller.
       if (widget.controller != null) {
-        setValue(widget.controller.text);
-        if (oldWidget.controller == null) _controller = null;
+        setValue(widget.controller?.text);
       }
     }
   }
@@ -238,21 +259,21 @@ class DropDownFieldState extends FormFieldState<String> {
       _controller = TextEditingController(text: widget.initialValue);
     }
 
-    _effectiveController.addListener(_handleControllerChanged);
+    _effectiveController?.addListener(_handleControllerChanged);
 
-    _searchText = _effectiveController.text;
+    _searchText = _effectiveController!.text;
   }
 
   @override
   void reset() {
     super.reset();
     setState(() {
-      _effectiveController.text = widget.initialValue;
+      _effectiveController!.text = widget.initialValue ?? "";
     });
   }
 
   List<ListTile> _getChildren(List<String> items) {
-    List<ListTile> childItems = List();
+    List<ListTile> childItems = [];
     for (var item in items) {
       if (_searchText.isNotEmpty) {
         if (item.toUpperCase().contains(_searchText.toUpperCase()))
@@ -261,7 +282,7 @@ class DropDownFieldState extends FormFieldState<String> {
         childItems.add(_getListTile(item));
       }
     }
-    _isSearching ? childItems : List();
+    _isSearching ? childItems : [];
     return childItems;
   }
 
@@ -273,7 +294,7 @@ class DropDownFieldState extends FormFieldState<String> {
       ),
       onTap: () {
         setState(() {
-          _effectiveController.text = text;
+          _effectiveController!.text = text;
           _handleControllerChanged();
           _showdropdown = false;
           _isSearching = false;
@@ -291,10 +312,10 @@ class DropDownFieldState extends FormFieldState<String> {
     // notifications for changes originating from within this class -- for
     // example, the reset() method. In such cases, the FormField value will
     // already have been set.
-    if (_effectiveController.text != value)
-      didChange(_effectiveController.text);
+    if (_effectiveController!.text != value)
+      didChange(_effectiveController!.text);
 
-    if (_effectiveController.text.isEmpty) {
+    if (_effectiveController!.text.isEmpty) {
       setState(() {
         _isSearching = false;
         _searchText = "";
@@ -302,7 +323,7 @@ class DropDownFieldState extends FormFieldState<String> {
     } else {
       setState(() {
         _isSearching = true;
-        _searchText = _effectiveController.text;
+        _searchText = _effectiveController!.text;
         _showdropdown = true;
       });
     }
